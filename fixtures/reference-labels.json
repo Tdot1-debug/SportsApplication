@@ -1,0 +1,7 @@
+{
+  "note": "Coach-confirmed counts. Used only for scoring in services/worker/src/smarvii_worker/eval.py. Never sent to the model.",
+  "fixtures": {
+    "gym_mixed_25s": {"expected_count": 7, "expected_by_label": {"lunge": 1, "hinge": 6}, "source": "coach-confirmed", "notes": "1 lunge then 6 hinge reps (about 25.14 s, 1600x1200, 30 fps)."},
+    "gym_hinge_14s": {"expected_count": 4, "expected_by_label": {"hinge": 4}, "source": "coach-confirmed", "notes": "4 hinge reps; the opening weight pickup is not a rep (about 13.77 s)."}
+  }
+}

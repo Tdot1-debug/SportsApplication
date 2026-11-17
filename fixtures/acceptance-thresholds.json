@@ -1,0 +1,28 @@
+{
+  "note": "Acceptance thresholds written on 2026-11-07, before any live provider run. Changing a threshold after seeing results must be recorded in docs/EVALUATION_PLAN.md with the reason, and the earlier result reported against the original threshold.",
+  "written": "2026-11-07",
+  "activities": {
+    "strength.reps": {
+      "min_clips_for_validation": 20,
+      "min_distinct_athletes": 3,
+      "exact_count_rate_min": 0.70,
+      "within_one_rate_min": 0.90,
+      "mean_relative_error_max": 0.15,
+      "label_match_rate_min": 0.80,
+      "failed_run_rate_max": 0.05,
+      "cost_usd_per_analysed_minute_max": 2.0,
+      "wall_seconds_per_analysed_minute_max": 180
+    },
+    "general.movement": {
+      "min_clips_for_validation": 20,
+      "min_distinct_athletes": 3,
+      "exact_count_rate_min": 0.70,
+      "within_one_rate_min": 0.90,
+      "mean_relative_error_max": 0.15,
+      "label_match_rate_min": null,
+      "failed_run_rate_max": 0.05,
+      "cost_usd_per_analysed_minute_max": 2.0,
+      "wall_seconds_per_analysed_minute_max": 180
+    }
+  }
+}

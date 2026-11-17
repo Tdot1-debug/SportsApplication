@@ -1,0 +1,31 @@
+# Render Blueprint for the background worker (the web app deploys to Vercel; the database/auth/storage is Supabase).
+# Secrets are set in the Render dashboard (sync: false); nothing secret is stored here.
+services:
+  - type: worker
+    name: smarvii-worker
+    runtime: docker
+    rootDir: services/worker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-opus-5-5
+      - key: ANTHROPIC_EFFORT
+        value: medium
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash
+      - key: ANALYSIS_PROVIDER
+        value: gemini
+      - key: SMARVII_TEST_MODE
+        value: "0"
+      - key: JOB_LEASE_SECONDS
+        value: "120"

@@ -1,0 +1,7 @@
+{
+  "note": "Inference inputs only. Expected answers live in reference-labels.json and are read by the harness only after predictions are written.",
+  "fixtures": [
+    {"id": "gym_mixed_25s", "filename": "20261102172657258.MP4", "drill_template": "gym_test", "excerpt": null},
+    {"id": "gym_hinge_14s", "filename": "20261102172738437.MP4", "drill_template": "gym_test", "excerpt": null}
+  ]
+}

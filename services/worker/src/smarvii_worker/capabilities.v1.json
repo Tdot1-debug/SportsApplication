@@ -1,0 +1,187 @@
+{
+  "$comment": "Single source of truth for what Smarvii can analyse. Edit this file only, then run `node registry/sync.mjs` to copy it into the worker and web app. Bump registry_version on every change. Each analysis run records the version it was produced with; past reports are never reinterpreted under a newer version.",
+  "registry_version": "2026-11-07.1",
+  "status_definitions": {
+    "validated": "Measured against a held-out evaluation set and met the acceptance thresholds written down before the run.",
+    "experimental": "Available in the product, clearly labelled, every result needs human review. Not yet validated.",
+    "proposed": "Researched and specified, not built. Manual review only for now.",
+    "unavailable": "Cannot be produced from phone or glasses video with the current pipeline. Never shown as a number.",
+    "manual": "No automated analysis. People add events and notes by hand."
+  },
+  "metric_kinds": {
+    "observable_event": "Something that happened at a time you can point to in the video (a rep, a swing, a punch).",
+    "qualitative_observation": "A visible coaching note tied to a timestamp. Words, not numbers.",
+    "measurement": "A number with a unit derived from the video. Needs a validated method; language-model estimates never count.",
+    "contextual_outcome": "The result of an event that depends on context outside the athlete (contact, target hit). Always human-confirmed."
+  },
+  "activities": [
+    {
+      "id": "strength.reps",
+      "sport": "strength",
+      "label": "Strength and gym reps",
+      "drill_template": "gym_test",
+      "status": "experimental",
+      "training_question": "How many reps did I do of each movement, and where in the video is each one?",
+      "events": [{ "type": "rep", "definition": "One full cycle of the named movement, from start position back to start position." }],
+      "metrics": [
+        { "id": "rep_count", "label": "Rep count", "kind": "observable_event", "unit": "reps", "status": "experimental", "definition": "Number of completed rep events after review.", "sources": ["repnet-2020"] },
+        { "id": "rep_times", "label": "Rep start and end times", "kind": "observable_event", "unit": "s", "status": "experimental", "definition": "Video timestamps bounding each rep; a reviewer can adjust them.", "sources": ["repnet-2020"] },
+        { "id": "movement_label", "label": "Movement name", "kind": "qualitative_observation", "unit": null, "status": "experimental", "definition": "The movement seen (for example hinge, lunge, squat). The reviewer corrects it.", "sources": [] },
+        { "id": "technique_note", "label": "Technique note", "kind": "qualitative_observation", "unit": null, "status": "experimental", "definition": "A visible cue tied to a timestamp, for example hips travel back before the knees bend.", "sources": ["nsca-ptq-10-2"] }
+      ],
+      "not_available": [
+        { "metric": "Bar or body speed", "reason": "Needs calibrated capture or a sensor; frame sampling cannot measure it.", "sources": [] },
+        { "metric": "Joint angles in degrees", "reason": "2D pose agreement with marker-based capture depends on viewing angle and joint, and is weak for small motions.", "sources": ["menychtas-2023", "baldinger-2025"] },
+        { "metric": "Load, range of motion in cm, power", "reason": "Not observable from video without calibration or equipment data.", "sources": [] }
+      ],
+      "capture": { "view": "Side-on for hinges and squats, the whole body in frame, camera steady.", "min_fps": 24, "min_resolution": "720p", "phone": "good", "glasses": "Good when the wearer films someone else; poor for the wearer's own reps." },
+      "failure_cases": ["Camera motion or turning away mid-set", "Partial reps or pauses", "Equipment or other people blocking the athlete", "Movement description missing or not matching the video", "More than one person moving"],
+      "review_controls": ["Add, delete, split or move any rep", "Edit the movement name", "Confirm who the recording shows before publishing"],
+      "report_template": "gym_totals_v1",
+      "evaluation": { "dataset": "fixtures/gym (2 real clips; labels kept in fixture files only)", "status": "not_run", "plan": "docs/EVALUATION_PLAN.md" },
+      "cost_budget": { "max_usd_per_analysed_minute": 2.0, "basis": "docs/COST_MODEL.md estimate, not yet measured" }
+    },
+    {
+      "id": "general.movement",
+      "sport": "other",
+      "label": "Any described movement",
+      "drill_template": "general_movement",
+      "status": "experimental",
+      "training_question": "How many times did I do the movement I described?",
+      "events": [{ "type": "rep", "definition": "One repetition as the user defines it in the movement description." }],
+      "metrics": [
+        { "id": "rep_count", "label": "Rep count", "kind": "observable_event", "unit": "reps", "status": "experimental", "definition": "Number of completed reps of the described movement after review.", "sources": ["repnet-2020"] },
+        { "id": "rep_times", "label": "Rep start and end times", "kind": "observable_event", "unit": "s", "status": "experimental", "definition": "Video timestamps bounding each rep.", "sources": ["repnet-2020"] }
+      ],
+      "not_available": [
+        { "metric": "Any speed, distance, angle or force", "reason": "Not measurable from sampled frames.", "sources": [] }
+      ],
+      "capture": { "view": "Whole body in frame, camera steady, one person moving.", "min_fps": 24, "min_resolution": "720p", "phone": "good", "glasses": "Good when filming someone else." },
+      "failure_cases": ["Vague or missing movement description (the analysis abstains)", "Movements where what counts as one rep is ambiguous", "Several people moving"],
+      "review_controls": ["Add, delete, split or move any rep", "Confirm who the recording shows before publishing"],
+      "report_template": "gym_totals_v1",
+      "evaluation": { "dataset": "none yet", "status": "not_run", "plan": "docs/EVALUATION_PLAN.md" },
+      "cost_budget": { "max_usd_per_analysed_minute": 2.0, "basis": "docs/COST_MODEL.md estimate, not yet measured" }
+    },
+    {
+      "id": "softball.hitting",
+      "sport": "softball",
+      "label": "Softball hitting",
+      "drill_template": "softball_hitting",
+      "status": "experimental",
+      "training_question": "How many swings did I take, and which made contact?",
+      "events": [{ "type": "swing", "definition": "A full swing attempt. Bunts and checked swings are excluded." }],
+      "metrics": [
+        { "id": "swing_count", "label": "Swings", "kind": "observable_event", "unit": "swings", "status": "experimental", "definition": "Number of swing events after review.", "sources": [] },
+        { "id": "contact_outcome", "label": "Contact result", "kind": "contextual_outcome", "unit": null, "status": "experimental", "definition": "Fair contact, foul, swing and miss, or unclear. Shown as counts out of swings, never as a batting average.", "sources": [] }
+      ],
+      "not_available": [
+        { "metric": "Bat speed, swing time, exit velocity, launch angle", "reason": "Published swing kinematics used 300 Hz cameras with calibration; 30 fps phone or glasses video cannot resolve a ~0.2 s swing.", "sources": ["reilly-boccia-2015"] }
+      ],
+      "capture": { "view": "Side-on from the first-base side for right-handed hitters, third-base side for left-handed.", "min_fps": 30, "min_resolution": "720p", "phone": "good", "glasses": "Usable from the coach's position; the ball is often lost." },
+      "failure_cases": ["Ball not visible at contact", "Several hitters in frame", "Camera behind the backstop netting"],
+      "review_controls": ["Correct every outcome", "Mark unclear rather than guess", "Confirm who the recording shows before publishing"],
+      "report_template": "softball_totals_v1",
+      "evaluation": { "dataset": "none yet", "status": "not_run", "plan": "docs/EVALUATION_PLAN.md" },
+      "cost_budget": { "max_usd_per_analysed_minute": 4.5, "basis": "docs/COST_MODEL.md estimate, not yet measured" }
+    },
+    {
+      "id": "softball.pitching",
+      "sport": "softball",
+      "label": "Underhand softball pitching",
+      "drill_template": "softball_pitching",
+      "status": "experimental",
+      "training_question": "How many pitches did I throw, and how many hit the target?",
+      "events": [{ "type": "pitch", "definition": "One delivery from the start of the windmill to release." }],
+      "metrics": [
+        { "id": "pitch_count", "label": "Pitches", "kind": "observable_event", "unit": "pitches", "status": "experimental", "definition": "Number of pitch events after review.", "sources": [] },
+        { "id": "target_outcome", "label": "Target result", "kind": "contextual_outcome", "unit": null, "status": "experimental", "definition": "Target hit, missed or unclear, against the target the coach described. Shown as counts out of pitches.", "sources": [] }
+      ],
+      "not_available": [
+        { "metric": "Pitch speed, spin rate, release angle", "reason": "Needs radar or high-speed calibrated capture.", "sources": ["reilly-boccia-2015"] }
+      ],
+      "capture": { "view": "Behind or beside the catcher with the target in frame.", "min_fps": 30, "min_resolution": "720p", "phone": "good", "glasses": "Usable when the target stays in view." },
+      "failure_cases": ["Target out of frame", "Target not described", "Several pitchers at once"],
+      "review_controls": ["Correct every outcome", "Confirm who the recording shows before publishing"],
+      "report_template": "softball_totals_v1",
+      "evaluation": { "dataset": "none yet", "status": "not_run", "plan": "docs/EVALUATION_PLAN.md" },
+      "cost_budget": { "max_usd_per_analysed_minute": 4.5, "basis": "docs/COST_MODEL.md estimate, not yet measured" }
+    },
+    {
+      "id": "tennis.strokes",
+      "sport": "tennis",
+      "label": "Tennis strokes",
+      "drill_template": null,
+      "status": "proposed",
+      "training_question": "How many strokes did I hit in this drill, and of which kind?",
+      "events": [{ "type": "stroke", "definition": "One racket swing at the ball, from backswing to follow-through." }],
+      "metrics": [
+        { "id": "stroke_count", "label": "Strokes", "kind": "observable_event", "unit": "strokes", "status": "proposed", "definition": "Number of stroke events after review.", "sources": [] },
+        { "id": "stroke_group", "label": "Stroke group", "kind": "qualitative_observation", "unit": null, "status": "proposed", "definition": "Forehand, backhand or serve only. Finer classes (slice, volley, smash) are not offered: published RGB models confuse them without the ball.", "sources": ["vinyes-mora-2017", "cai-tang-2018"] },
+        { "id": "serve_note", "label": "Serve technique note", "kind": "qualitative_observation", "unit": null, "status": "proposed", "definition": "Visible cues such as knee bend before the drive or trunk rotation, worded as observations for the coach to confirm.", "sources": ["elliott-2010"] }
+      ],
+      "not_available": [
+        { "metric": "Ball speed, spin, racket speed, in or out calls", "reason": "Needs radar, high-speed or multi-camera tracking.", "sources": [] },
+        { "metric": "Joint angles", "reason": "2D angles need the camera perpendicular to the plane of motion, and agreement varies by view and joint.", "sources": ["elliott-2010", "baldinger-2025"] }
+      ],
+      "capture": { "view": "Behind the baseline or side-on, the whole player in frame.", "min_fps": 60, "min_resolution": "720p", "phone": "good on a tripod", "glasses": "Poor for the wearer's own strokes; usable when a coach films." },
+      "failure_cases": ["Motion blur at 30 fps", "Ball not visible", "Serve and smash look alike without the ball", "Player leaves the frame"],
+      "review_controls": ["Correct the stroke group", "Add or delete strokes", "Confirm who the recording shows"],
+      "report_template": null,
+      "evaluation": { "dataset": "needs consented tennis clips; THETIS is an indoor, ball-less research set", "status": "not_run", "plan": "docs/EVALUATION_PLAN.md" },
+      "cost_budget": { "max_usd_per_analysed_minute": null, "basis": "not measured" }
+    },
+    {
+      "id": "boxing.punches",
+      "sport": "boxing",
+      "label": "Boxing pad, bag and shadow work",
+      "drill_template": null,
+      "status": "proposed",
+      "training_question": "How many punches did I throw in this round, and of which kind?",
+      "events": [{ "type": "punch", "definition": "One punch from guard to full extension and back." }],
+      "metrics": [
+        { "id": "punch_count", "label": "Punches", "kind": "observable_event", "unit": "punches", "status": "proposed", "definition": "Number of punch events after review.", "sources": ["boxingvi-2025"] },
+        { "id": "punch_type", "label": "Punch type", "kind": "qualitative_observation", "unit": null, "status": "proposed", "definition": "Jab, cross, hook or uppercut, lead or rear, for a coach to confirm. No published baseline accuracy exists yet for this labelling.", "sources": ["boxingvi-2025"] }
+      ],
+      "not_available": [
+        { "metric": "Punch force or hand speed", "reason": "Validated values come from glove sensors at 1000 Hz checked against a force plate, not from video.", "sources": ["menzel-potthast-2021"] },
+        { "metric": "Landed punches in sparring", "reason": "Needs two-person tracking and contact judgement; multi-athlete tracking is experimental and identity is never inferred from appearance.", "sources": ["boxingvi-2025"] }
+      ],
+      "capture": { "view": "Fixed camera, front-oblique, one boxer in frame.", "min_fps": 30, "min_resolution": "720p", "phone": "good on a tripod", "glasses": "Unsuitable for the wearer's own punches; usable for a coach holding pads only if the boxer stays in view." },
+      "failure_cases": ["Arms hidden by the bag or a partner", "Fast combinations blurring at 30 fps", "Two people in frame"],
+      "review_controls": ["Correct the punch type", "Add or delete punches", "Confirm who the recording shows"],
+      "report_template": null,
+      "evaluation": { "dataset": "needs consented clips; BoxingVI lists public videos and labels", "status": "not_run", "plan": "docs/EVALUATION_PLAN.md" },
+      "cost_budget": { "max_usd_per_analysed_minute": null, "basis": "not measured" }
+    },
+    {
+      "id": "manual.other",
+      "sport": "other",
+      "label": "Anything else (manual review)",
+      "drill_template": "other",
+      "status": "manual",
+      "training_question": "Keep the video with timestamped notes and a coach's or your own review.",
+      "events": [],
+      "metrics": [],
+      "not_available": [],
+      "capture": { "view": "Any", "min_fps": null, "min_resolution": null, "phone": "good", "glasses": "good" },
+      "failure_cases": [],
+      "review_controls": ["Add events and notes by hand"],
+      "report_template": "manual_v1",
+      "evaluation": { "dataset": "n/a", "status": "not_applicable", "plan": null },
+      "cost_budget": { "max_usd_per_analysed_minute": 0, "basis": "no automated analysis" }
+    }
+  ],
+  "sources": [
+    { "id": "repnet-2020", "citation": "Dwibedi, Aytar, Tompson, Sermanet, Zisserman. Counting Out Time: Class Agnostic Video Repetition Counting in the Wild. CVPR 2020.", "url": "https://arxiv.org/abs/2006.15418", "accessed": "2026-11-07", "finding": "On the Countix test set (YouTube clips), mean relative count error 0.364 and about 30% of clips off by more than one rep. Counts can halve when two body parts repeat at different rates." },
+    { "id": "menychtas-2023", "citation": "Menychtas et al. Gait analysis comparison between manual marking, 2D pose estimation algorithms, and 3D marker-based system. Frontiers in Rehabilitation Sciences 4:1238134, 2023.", "url": "https://doi.org/10.3389/fresc.2023.1238134", "accessed": "2026-11-07", "finding": "2D pose tracks large joint motion comparably to marker capture but struggles with small motions such as the ankle." },
+    { "id": "baldinger-2025", "citation": "Baldinger, Reimer, Senner. Influence of the Camera Viewing Angle on OpenPose Validity in Motion Analysis. Sensors 25(3):799, 2025.", "url": "https://doi.org/10.3390/s25030799", "accessed": "2026-11-07", "finding": "Joint angles differ significantly by camera viewing angle; shoulder agreement was poor." },
+    { "id": "vinyes-mora-2017", "citation": "Vinyes Mora, Knottenbelt. Deep Learning for Domain-Specific Action Recognition in Tennis. CVPR Workshops (CVSports) 2017.", "url": "https://www.doc.ic.ac.uk/~wjk/publications/vinyes-knottenbelt-cvsports-2017.pdf", "accessed": "2026-11-07", "finding": "On THETIS RGB video, 47% accuracy for 12 stroke classes, 77% for 4 stroke groups, 88% for 3 strokes; serve and smash confused without the ball." },
+    { "id": "cai-tang-2018", "citation": "Cai, Tang. RGB Video Based Tennis Action Recognition Using a Deep Weighted Long Short-Term Memory. arXiv:1808.00845, 2018.", "url": "https://arxiv.org/abs/1808.00845", "accessed": "2026-11-07", "finding": "74% on THETIS 12 classes under a different (5-fold) protocol; authors call for tests on real match video." },
+    { "id": "elliott-2010", "citation": "Elliott. Biomechanical Analysis of Stroke Production. ITF Coaching & Sport Science Review 50:7-9, 2010. CC BY 4.0.", "url": "https://doi.org/10.52383/itfcoaching.v18i50.619", "accessed": "2026-11-07", "finding": "Observe hip-shoulder rotation, racket path, knee flexion before the serve drive; 2D angle measurement needs the camera perpendicular to the motion." },
+    { "id": "boxingvi-2025", "citation": "Kumar et al. BoxingVI: A Multi-Modal Benchmark for Boxing Action Recognition and Localization. arXiv:2511.16524, 2025.", "url": "https://arxiv.org/abs/2511.16524", "accessed": "2026-11-07", "finding": "6,915 punch clips in 6 classes from fixed monocular video with 2D pose for one boxer; dataset only, no baseline accuracy." },
+    { "id": "menzel-potthast-2021", "citation": "Menzel, Potthast. Validation of a Unique Boxing Monitoring System. Sensors 21(21):6947, 2021.", "url": "https://doi.org/10.3390/s21216947", "accessed": "2026-11-07", "finding": "Glove force sensors at 1000 Hz agreed with a force plate (R = 0.995, RMSE 59.8 N) for two boxers; force and speed came from sensors, not video." },
+    { "id": "reilly-boccia-2015", "citation": "Reilly-Boccia, Ficklin, Lund. Swing Kinematics Described in Division I Female Softball Players. The Sport Journal, 2015.", "url": "https://thesportjournal.org/article/swing-kinematics-described-in-division-i-female-softball-players/", "accessed": "2026-11-07", "finding": "Bat velocity (28.8 m/s) and swing time (0.21 s) were measured with 300 Hz cameras and a calibration distance; no validity statistics reported." },
+    { "id": "nsca-ptq-10-2", "citation": "Lincoln, Ill, Ibrahim. Progressive Strategies for Teaching Fundamental Resistance Training Movement Patterns. NSCA Personal Training Quarterly 10.2, 2023.", "url": "https://www.nsca.com/contentassets/3d09f06f0b4c4f6fbd8cc382ed1f3d4a/ptq-10.2.1-progressive-strategies-for-teaching-fundamental-resistance-training-movement-patterns.pdf", "accessed": "2026-11-07", "finding": "Hinge cues (push hips back), one or two cues at a time, model from front and side, video as augmented feedback." }
+  ]
+}
